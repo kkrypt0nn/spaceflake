@@ -6,7 +6,7 @@ A generator to create unique IDs with ease; inspired by [Twitter's Snowflake](ht
 
 ## What is a Snowflake?
 
-Apart from being a crystal of snow, a snowflake is a form of unique identifier which is being used in distributed computing. It has a specific parts and is 64 bits long in binary. I simply named my type of snowflake, a **Spaceflake**, as it does not compose of the same parts of a Twitter Snowflake.
+Apart from being a crystal of snow, a snowflake is a form of unique identifier which is being used in distributed computing. It has a specific parts and is 64 bits long in binary. I simply named my type of snowflake, a **Spaceflake**, as it does not compose of the same parts of a Twitter Snowflake and is being used for [Spacehut](https://github.com/spacehutapp) and other projects of myself.
 
 A Spaceflake is structured like the following
 
