@@ -152,6 +152,9 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	if w.Sequence > MAX12BIT {
 		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BIT)
 	}
+	if w.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
+	}
 	// We reset the increment to 0 if it's greater than 4095, which is the max sequence number
 	if w.increment > MAX12BIT {
 		w.increment = 0
@@ -214,6 +217,9 @@ func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	}
 	if s.Sequence > MAX12BIT {
 		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BIT)
+	}
+	if s.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
 	}
 
 	spaceflake := new(Spaceflake)

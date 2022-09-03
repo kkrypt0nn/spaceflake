@@ -7,6 +7,17 @@ import (
 
 // Probably not the best tests, but they test what I want to test
 
+func TestSpaceflakeInFuture(t *testing.T) {
+	settings := NewGeneratorSettings()
+	settings.BaseEpoch = 2662196938000 // Tuesday, May 12, 2054 11:08:58 AM GMT
+	_, err := Generate(settings)
+	if err != nil {
+		t.Log("Success! The generator did not allowed the spaceflake generation")
+		return
+	}
+	t.Error("Failed! A spaceflake has been generated with a future base epoch")
+}
+
 func TestSpaceflakeGenerateUnique(t *testing.T) {
 	spaceflakes := map[uint64]*Spaceflake{}
 	settings := NewGeneratorSettings()
