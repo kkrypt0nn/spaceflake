@@ -12,56 +12,56 @@ import (
 const (
 	// EPOCH is the base epoch for the spaceflake generation. First second of 2015, year when I got my username "Krypton"
 	EPOCH = 1420070400000
-	// MAX5BIT is the maximum value for a 5 bit number
-	MAX5BIT = 31
-	// MAX12BIT is the maximum value for a 12 bit number
-	MAX12BIT = 4095
-	// MAX41BIT is the maximum value for a 41 bit number
-	MAX41BIT = 2199023255551
+	// MAX5BITS is the maximum value for a 5 bits number
+	MAX5BITS = 31
+	// MAX12BITS is the maximum value for a 12 bits number
+	MAX12BITS = 4095
+	// MAX41BITS is the maximum value for a 41 bits number
+	MAX41BITS = 2199023255551
 )
 
 // Spaceflake represents a spaceflake
 type Spaceflake struct {
-	BaseEpoch uint64 `json:"baseEpoch"`
-	BinaryId  string `json:"binaryId"`
-	Id        uint64 `json:"id"`
+	baseEpoch uint64
+	binaryId  string
+	id        uint64
 	mutex     *sync.Mutex
 }
 
 // Time returns the time in milliseconds since the base epoch from the spaceflake
 func (s *Spaceflake) Time() uint64 {
-	return (s.Id >> 22) + s.BaseEpoch
+	return (s.id >> 22) + s.baseEpoch
 }
 
 // NodeID returns the node ID from the spaceflake
 func (s *Spaceflake) NodeID() uint64 {
-	return (s.Id & 0x3E0000) >> 17
+	return (s.id & 0x3E0000) >> 17
 }
 
 // WorkerID returns the worker ID from the spaceflake
 func (s *Spaceflake) WorkerID() uint64 {
-	return (s.Id & 0x1F000) >> 12
+	return (s.id & 0x1F000) >> 12
 }
 
 // Sequence returns the sequence number from the spaceflake
 func (s *Spaceflake) Sequence() uint64 {
-	return s.Id & 0xFFF
+	return s.id & 0xFFF
 }
 
 // ID returns the spaceflake ID
 func (s *Spaceflake) ID() uint64 {
-	return s.Id
+	return s.id
 }
 
 // BinaryID returns the spaceflake ID in binary format
 func (s *Spaceflake) BinaryID() string {
-	return s.BinaryId
+	return s.binaryId
 }
 
 // Decompose returns all the parts of the spaceflake
 func (s *Spaceflake) Decompose() map[string]uint64 {
 	return map[string]uint64{
-		"id":       s.Id,
+		"id":       s.ID(),
 		"nodeId":   s.NodeID(),
 		"sequence": s.Sequence(),
 		"time":     s.Time(),
@@ -83,7 +83,7 @@ func (s *Spaceflake) DecomposeBinary() map[string]string {
 // Node is a node in the spaceflake network that can hold workers
 type Node struct {
 	// NodeId is the ID of the node
-	NodeId uint64 `json:"nodeId"`
+	NodeId uint64
 	// Workers is the list of workers in the node
 	workers []*Worker
 }
@@ -127,13 +127,13 @@ func (n *Node) GetWorkers() []*Worker {
 // Worker is a worker in the spaceflake network that can generate spaceflakes
 type Worker struct {
 	// BaseEpoch is the epoch that will be used for the first 41 bits when generating a spaceflake
-	BaseEpoch uint64 `json:"baseEpoch"`
+	BaseEpoch uint64
 	// Node is the node that the worker belongs to
-	Node *Node `json:"node"`
+	Node *Node
 	// Sequence is the last 12 bits, usually an incremented number but can be anything. If set to 0, it will be the incremented number.
-	Sequence uint64 `json:"sequence"`
+	Sequence uint64
 	// WorkerId is the worker ID that the spaceflake generator will use for the next 5 bits
-	WorkerId uint64 `json:"workerId"`
+	WorkerId uint64
 
 	increment uint64
 }
@@ -143,20 +143,20 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	if w.Node == nil {
 		return nil, fmt.Errorf("node is not set")
 	}
-	if w.Node.NodeId > MAX5BIT {
-		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BIT)
+	if w.Node.NodeId > MAX5BITS {
+		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
 	}
-	if w.WorkerId > MAX5BIT {
-		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BIT)
+	if w.WorkerId > MAX5BITS {
+		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BITS)
 	}
-	if w.Sequence > MAX12BIT {
-		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BIT)
+	if w.Sequence > MAX12BITS {
+		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BITS)
 	}
 	if w.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
 		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
 	}
 	// We reset the increment to 0 if it's greater than 4095, which is the max sequence number
-	if w.increment > MAX12BIT {
+	if w.increment > MAX12BITS {
 		w.increment = 0
 	}
 
@@ -179,9 +179,9 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	sequence := stringPadLeft(decimalBinary(actualSequence), 12, "0")
 	id, _ := binaryDecimal("0" + base + nodeId + workerId + sequence)
 
-	spaceflake.BaseEpoch = w.BaseEpoch
-	spaceflake.BinaryId = "0" + base + nodeId + workerId + sequence
-	spaceflake.Id = id
+	spaceflake.baseEpoch = w.BaseEpoch
+	spaceflake.binaryId = "0" + base + nodeId + workerId + sequence
+	spaceflake.id = id
 
 	return spaceflake, nil
 }
@@ -209,14 +209,14 @@ func NewGeneratorSettings() GeneratorSettings {
 
 // Generate only a spaceflake ID when you need to generate one without worker and node objects. Fastest way of creating a spaceflake.
 func Generate(s GeneratorSettings) (*Spaceflake, error) {
-	if s.NodeId > MAX5BIT {
-		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BIT)
+	if s.NodeId > MAX5BITS {
+		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
 	}
-	if s.WorkerId > MAX5BIT {
-		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BIT)
+	if s.WorkerId > MAX5BITS {
+		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BITS)
 	}
-	if s.Sequence > MAX12BIT {
-		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BIT)
+	if s.Sequence > MAX12BITS {
+		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BITS)
 	}
 	if s.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
 		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
@@ -234,14 +234,14 @@ func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	nodeId := stringPadLeft(decimalBinary(s.NodeId), 5, "0")
 	workerId := stringPadLeft(decimalBinary(s.WorkerId), 5, "0")
 	if s.Sequence == 0 {
-		s.Sequence = uint64(random(0, MAX12BIT))
+		s.Sequence = uint64(random(0, MAX12BITS))
 	}
 	sequence := stringPadLeft(decimalBinary(s.Sequence), 12, "0")
 	id, _ := binaryDecimal("0" + base + nodeId + workerId + sequence)
 
-	spaceflake.BaseEpoch = s.BaseEpoch
-	spaceflake.BinaryId = "0" + base + nodeId + workerId + sequence
-	spaceflake.Id = id
+	spaceflake.baseEpoch = s.BaseEpoch
+	spaceflake.binaryId = "0" + base + nodeId + workerId + sequence
+	spaceflake.id = id
 
 	return spaceflake, nil
 }

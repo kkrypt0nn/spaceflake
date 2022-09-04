@@ -53,6 +53,7 @@ func TestSpaceflakeWorkerUnique(t *testing.T) {
 			t.Error("Failed! A spaceflake has been generated twice")
 			return
 		}
+		// Here we don't need to sleep because the worker is using an incrementing sequence, and we don't generate more than 4095 spaceflakes per millisecond
 		spaceflakes[sf.ID()] = sf
 	}
 
