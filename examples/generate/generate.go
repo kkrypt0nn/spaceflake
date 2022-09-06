@@ -14,14 +14,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeId:0 sequence:<random> time:<timestamp> workerId:0]
+	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeID:0 sequence:<random> time:<timestamp> workerID:0]
 
-	settings.NodeId = 5
-	settings.WorkerId = 5
+	settings.NodeID = 5
+	settings.WorkerID = 5
 	settings.Sequence = 1337
 	sf, err = spaceflake.Generate(settings)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeId:5 sequence:1337 time:<timestamp> workerId:5]
+	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeID:5 sequence:1337 time:<timestamp> workerID:5]
 }

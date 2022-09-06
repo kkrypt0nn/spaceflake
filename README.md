@@ -48,7 +48,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeId:0 sequence:<random> time:<timestamp> workerId:0]
+	fmt.Println(sf.Decompose()) // map[id:<spaceflake> nodeID:0 sequence:<random> time:<timestamp> workerID:0]
 }
 ```
 For different examples you can see the normal generation example [here](examples/generate/generate.go) or if you want to use workers and nodes you can see the [worker example](examples/node_workers/node_workers.go).
