@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// EPOCH is the base epoch for the spaceflake generation. First second of 2015, year when I got my username "Krypton"
+	// EPOCH is the base epoch for the Spaceflake generation. First second of 2015, year when I got my username "Krypton"
 	EPOCH = 1420070400000
 	// MAX5BITS is the maximum value for a 5 bits number
 	MAX5BITS = 31
@@ -20,7 +20,7 @@ const (
 	MAX41BITS = 2199023255551
 )
 
-// Spaceflake represents a spaceflake
+// Spaceflake represents a Spaceflake
 type Spaceflake struct {
 	baseEpoch uint64
 	binaryID  string
@@ -28,42 +28,42 @@ type Spaceflake struct {
 	mutex     *sync.Mutex
 }
 
-// Time returns the time in milliseconds since the base epoch from the spaceflake
+// Time returns the time in milliseconds since the base epoch from the Spaceflake
 func (s *Spaceflake) Time() uint64 {
 	return (s.id >> 22) + s.baseEpoch
 }
 
-// NodeID returns the node ID from the spaceflake
+// NodeID returns the node ID from the Spaceflake
 func (s *Spaceflake) NodeID() uint64 {
 	return (s.id & 0x3E0000) >> 17
 }
 
-// WorkerID returns the worker ID from the spaceflake
+// WorkerID returns the worker ID from the Spaceflake
 func (s *Spaceflake) WorkerID() uint64 {
 	return (s.id & 0x1F000) >> 12
 }
 
-// Sequence returns the sequence number from the spaceflake
+// Sequence returns the sequence number from the Spaceflake
 func (s *Spaceflake) Sequence() uint64 {
 	return s.id & 0xFFF
 }
 
-// ID returns the spaceflake ID
+// ID returns the Spaceflake ID
 func (s *Spaceflake) ID() uint64 {
 	return s.id
 }
 
-// BinaryID returns the spaceflake ID in binary format
+// BinaryID returns the Spaceflake ID in binary format
 func (s *Spaceflake) BinaryID() string {
 	return s.binaryID
 }
 
-// StringID returns the spaceflake ID as a string
+// StringID returns the Spaceflake ID as a string
 func (s *Spaceflake) StringID() string {
 	return fmt.Sprintf("%d", s.id)
 }
 
-// Decompose returns all the parts of the spaceflake
+// Decompose returns all the parts of the Spaceflake
 func (s *Spaceflake) Decompose() map[string]uint64 {
 	return map[string]uint64{
 		"id":       s.ID(),
@@ -74,7 +74,7 @@ func (s *Spaceflake) Decompose() map[string]uint64 {
 	}
 }
 
-// DecomposeBinary returns all the parts of the spaceflake in binary format
+// DecomposeBinary returns all the parts of the Spaceflake in binary format
 func (s *Spaceflake) DecomposeBinary() map[string]string {
 	return map[string]string{
 		"id":       stringPadLeft(decimalBinary(s.ID()), 64, "0"),
@@ -85,7 +85,7 @@ func (s *Spaceflake) DecomposeBinary() map[string]string {
 	}
 }
 
-// Node is a node in the spaceflake network that can hold workers
+// Node is a node in the Spaceflake Network that can hold workers
 type Node struct {
 	// ID is the ID of the node
 	ID uint64
@@ -93,7 +93,7 @@ type Node struct {
 	workers []*Worker
 }
 
-// NewNode creates a new node in the spaceflake network
+// NewNode creates a new node in the Spaceflake Network
 func NewNode(nodeID uint64) *Node {
 	return &Node{
 		ID:      nodeID,
@@ -129,21 +129,21 @@ func (n *Node) GetWorkers() []*Worker {
 	return n.workers
 }
 
-// Worker is a worker in the spaceflake network that can generate spaceflakes
+// Worker is a worker in the Spaceflake Network that can generate Spaceflakes
 type Worker struct {
-	// BaseEpoch is the epoch that will be used for the first 41 bits when generating a spaceflake
+	// BaseEpoch is the epoch that will be used for the first 41 bits when generating a Spaceflake
 	BaseEpoch uint64
 	// Node is the node that the worker belongs to
 	Node *Node
 	// Sequence is the last 12 bits, usually an incremented number but can be anything. If set to 0, it will be the incremented number.
 	Sequence uint64
-	// ID is the worker ID that the spaceflake generator will use for the next 5 bits
+	// ID is the worker ID that the Spaceflake generator will use for the next 5 bits
 	ID uint64
 
 	increment uint64
 }
 
-// GenerateSpaceflake generates a spaceflake
+// GenerateSpaceflake generates a Spaceflake
 func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	if w.Node == nil {
 		return nil, fmt.Errorf("node is not set")
@@ -191,15 +191,15 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	return spaceflake, nil
 }
 
-// GeneratorSettings is a struct that contains the settings for the spaceflake generator
+// GeneratorSettings is a struct that contains the settings for the Spaceflake generator
 type GeneratorSettings struct {
-	// BaseEpoch is the epoch that the spaceflake generator will use for the first 41 bits
+	// BaseEpoch is the epoch that the Spaceflake generator will use for the first 41 bits
 	BaseEpoch uint64
-	// NodeID is the node ID that the spaceflake generator will use for the next 5 bits
+	// NodeID is the node ID that the Spaceflake generator will use for the next 5 bits
 	NodeID uint64
 	// Sequence is the last 12 bits, usually an incremented number but can be anything. If set to 0, it will be random.
 	Sequence uint64
-	// WorkerID is the worker ID that the spaceflake generator will use for the next 5 bits
+	// WorkerID is the worker ID that the Spaceflake generator will use for the next 5 bits
 	WorkerID uint64
 }
 
@@ -212,7 +212,7 @@ func NewGeneratorSettings() GeneratorSettings {
 	}
 }
 
-// Generate only a spaceflake ID when you need to generate one without worker and node objects. Fastest way of creating a spaceflake.
+// Generate only a Spaceflake ID when you need to generate one without worker and node objects. Fastest way of creating a Spaceflake.
 func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	if s.NodeID > MAX5BITS {
 		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
@@ -251,27 +251,27 @@ func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	return spaceflake, nil
 }
 
-// ParseTime returns the time in milliseconds since the base epoch from the spaceflake ID
+// ParseTime returns the time in milliseconds since the base epoch from the Spaceflake ID
 func ParseTime(spaceflakeID, baseEpoch uint64) uint64 {
 	return (spaceflakeID >> 22) + baseEpoch
 }
 
-// ParseNodeID returns the node ID from the spaceflake ID
+// ParseNodeID returns the node ID from the Spaceflake ID
 func ParseNodeID(spaceflakeID uint64) uint64 {
 	return (spaceflakeID & 0x3E0000) >> 17
 }
 
-// ParseWorkerID returns the worker ID from the spaceflake ID
+// ParseWorkerID returns the worker ID from the Spaceflake ID
 func ParseWorkerID(spaceflakeID uint64) uint64 {
 	return (spaceflakeID & 0x1F000) >> 12
 }
 
-// ParseSequence returns the sequence number from the spaceflake ID
+// ParseSequence returns the sequence number from the Spaceflake ID
 func ParseSequence(spaceflakeID uint64) uint64 {
 	return spaceflakeID & 0xFFF
 }
 
-// Decompose returns all the parts of the spaceflake ID
+// Decompose returns all the parts of the Spaceflake ID
 func Decompose(spaceflakeID, baseEpoch uint64) map[string]uint64 {
 	return map[string]uint64{
 		"id":       spaceflakeID,
@@ -282,7 +282,7 @@ func Decompose(spaceflakeID, baseEpoch uint64) map[string]uint64 {
 	}
 }
 
-// DecomposeBinary returns all the parts of the spaceflake ID in binary format
+// DecomposeBinary returns all the parts of the Spaceflake ID in binary format
 func DecomposeBinary(spaceflakeID, baseEpoch uint64) map[string]string {
 	return map[string]string{
 		"binaryID": stringPadLeft(decimalBinary(spaceflakeID), 64, "0"),

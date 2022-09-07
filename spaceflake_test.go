@@ -12,10 +12,10 @@ func TestSpaceflakeInFuture(t *testing.T) {
 	settings.BaseEpoch = 2662196938000 // Tuesday, May 12, 2054 11:08:58 AM GMT
 	_, err := Generate(settings)
 	if err != nil {
-		t.Log("Success! The generator did not allowed the spaceflake generation")
+		t.Log("Success! The generator did not allowed the Spaceflake generation")
 		return
 	}
-	t.Error("Failed! A spaceflake has been generated with a future base epoch")
+	t.Error("Failed! A Spaceflake has been generated with a future base epoch")
 }
 
 func TestSpaceflakeGenerateUnique(t *testing.T) {
@@ -28,7 +28,7 @@ func TestSpaceflakeGenerateUnique(t *testing.T) {
 			t.Error(err)
 		}
 		if spaceflakes[sf.ID()] != nil {
-			t.Error("Failed! A spaceflake has been generated twice")
+			t.Error("Failed! A Spaceflake has been generated twice")
 			return
 		}
 		spaceflakes[sf.ID()] = sf
@@ -36,7 +36,7 @@ func TestSpaceflakeGenerateUnique(t *testing.T) {
 		time.Sleep(1 * time.Millisecond)
 	}
 
-	t.Log("Success! All spaceflakes are unique")
+	t.Log("Success! All Spaceflakes are unique")
 }
 
 func TestSpaceflakeWorkerUnique(t *testing.T) {
@@ -50,14 +50,14 @@ func TestSpaceflakeWorkerUnique(t *testing.T) {
 			t.Error(err)
 		}
 		if spaceflakes[sf.ID()] != nil {
-			t.Error("Failed! A spaceflake has been generated twice")
+			t.Error("Failed! A Spaceflake has been generated twice")
 			return
 		}
 		// Here we don't need to sleep because the worker is using an incrementing sequence, and we don't generate more than 4095 spaceflakes per millisecond
 		spaceflakes[sf.ID()] = sf
 	}
 
-	t.Log("Success! All spaceflakes are unique")
+	t.Log("Success! All Spaceflakes are unique")
 }
 
 type result struct {
@@ -85,13 +85,13 @@ func TestSpaceflakeWorkerGoroutineUnique(t *testing.T) {
 			t.Error(result.err)
 		}
 		if spaceflakes[result.spaceflake.ID()] != nil {
-			t.Error("Failed! A spaceflake has been generated twice")
+			t.Error("Failed! A Spaceflake has been generated twice")
 			return
 		}
 		spaceflakes[result.spaceflake.ID()] = result.spaceflake
 	}
 
-	t.Log("Success! All spaceflakes are unique")
+	t.Log("Success! All Spaceflakes are unique")
 }
 
 func TestSameTimeStampDifferentBaseEpoch(t *testing.T) {
@@ -107,7 +107,7 @@ func TestSameTimeStampDifferentBaseEpoch(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if (sf1.Time() == sf2.Time()-1) || (sf1.Time() == sf2.Time()-2) { // Need to do this because we waited between the generation of the two spaceflakes
+	if (sf1.Time() == sf2.Time()-1) || (sf1.Time() == sf2.Time()-2) { // Need to do this because we waited between the generation of the two Spaceflakes
 		t.Log("Success! Generated same timestamp for different base epoch")
 		return
 	}
