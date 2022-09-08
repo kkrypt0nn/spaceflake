@@ -7,36 +7,100 @@ import (
 
 // Probably not the best tests, but they test what I want to test
 
+func TestSpaceflakeBulkGeneration(t *testing.T) {
+	spaceflakes := map[uint64]*Spaceflake{}
+	settings := NewBulkGeneratorSettings(1000000) // Default epoch
+	bulk, err := BulkGenerate(settings)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, sf := range bulk {
+		if spaceflakes[sf.ID()] != nil {
+			t.Errorf("Failed! Spaceflake ID %d already exists", sf.ID())
+			return
+		}
+		spaceflakes[sf.ID()] = sf
+	}
+
+	t.Log("Success! All Spaceflakes are unique")
+}
+
+func TestSpaceflakeBulkGenerationNode(t *testing.T) {
+	spaceflakes := map[uint64]*Spaceflake{}
+	node := NewNode(1)
+	bulk, err := node.BulkGenerateSpaceflakes(1000000)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, sf := range bulk {
+		if sf.NodeID() != 1 {
+			t.Error("Failed! Generated Spaceflake with wrong Node ID")
+			return
+		}
+		if spaceflakes[sf.ID()] != nil {
+			t.Errorf("Failed! Spaceflake ID %d already exists", sf.ID())
+			return
+		}
+		spaceflakes[sf.ID()] = sf
+	}
+
+	t.Log("Success! All Spaceflakes are unique")
+}
+
+func TestSpaceflakeBulkGenerationWorker(t *testing.T) {
+	spaceflakes := map[uint64]*Spaceflake{}
+	node := NewNode(1)
+	worker := node.NewWorker()
+	bulk, err := worker.BulkGenerateSpaceflakes(1000000)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, sf := range bulk {
+		if sf.WorkerID() != 1 {
+			t.Error("Failed! Generated Spaceflake with wrong Worker ID")
+			return
+		}
+		if spaceflakes[sf.ID()] != nil {
+			t.Errorf("Failed! Spaceflake ID %d already exists", sf.ID())
+			return
+		}
+		spaceflakes[sf.ID()] = sf
+	}
+
+	t.Log("Success! All Spaceflakes are unique")
+}
+
+func TestSpaceflakeAt(t *testing.T) {
+	node := NewNode(1)
+	worker := node.NewWorker()
+	sf, err := worker.GenerateSpaceflakeAt(time.Date(2018, 7, 21, 13, 43, 32, 64*int(time.Millisecond), time.UTC))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if sf.Time() != 1532180612064 {
+		t.Error("Failed! Time of Spaceflake is not set to Saturday, July 21, 2018 1:43:32.064 PM")
+		return
+	}
+	t.Log("Success! Time of Spaceflake is correct")
+}
+
 func TestSpaceflakeInFuture(t *testing.T) {
-	settings := NewGeneratorSettings()
-	settings.BaseEpoch = 2662196938000 // Tuesday, May 12, 2054 11:08:58 AM GMT
-	_, err := Generate(settings)
+	node := NewNode(1)
+	worker := node.NewWorker()
+	worker.BaseEpoch = 2662196938000 // Tuesday, May 12, 2054 11:08:58 AM GMT
+	_, err := worker.GenerateSpaceflake()
 	if err != nil {
 		t.Log("Success! The generator did not allowed the Spaceflake generation")
 		return
 	}
 	t.Error("Failed! A Spaceflake has been generated with a future base epoch")
-}
-
-func TestSpaceflakeGenerateUnique(t *testing.T) {
-	spaceflakes := map[uint64]*Spaceflake{}
-	settings := NewGeneratorSettings()
-
-	for i := 0; i < 1000; i++ {
-		sf, err := Generate(settings)
-		if err != nil {
-			t.Error(err)
-		}
-		if spaceflakes[sf.ID()] != nil {
-			t.Error("Failed! A Spaceflake has been generated twice")
-			return
-		}
-		spaceflakes[sf.ID()] = sf
-		// When using random there is a chance that the sequence will be twice the same due to Go's speed, hence using a worker is better. We wait a millisecond to make sure it's different.
-		time.Sleep(1 * time.Millisecond)
-	}
-
-	t.Log("Success! All Spaceflakes are unique")
 }
 
 func TestSpaceflakeWorkerUnique(t *testing.T) {
@@ -48,6 +112,7 @@ func TestSpaceflakeWorkerUnique(t *testing.T) {
 		sf, err := worker.GenerateSpaceflake()
 		if err != nil {
 			t.Error(err)
+			return
 		}
 		if spaceflakes[sf.ID()] != nil {
 			t.Error("Failed! A Spaceflake has been generated twice")
@@ -83,9 +148,10 @@ func TestSpaceflakeWorkerGoroutineUnique(t *testing.T) {
 		result := <-channel
 		if result.err != nil {
 			t.Error(result.err)
+			return
 		}
 		if spaceflakes[result.spaceflake.ID()] != nil {
-			t.Error("Failed! A Spaceflake has been generated twice")
+			t.Errorf("Failed! Spaceflake ID %d already exists", result.spaceflake.ID())
 			return
 		}
 		spaceflakes[result.spaceflake.ID()] = result.spaceflake
@@ -95,22 +161,45 @@ func TestSpaceflakeWorkerGoroutineUnique(t *testing.T) {
 }
 
 func TestSameTimeStampDifferentBaseEpoch(t *testing.T) {
-	settings := NewGeneratorSettings()
-	sf1, err := Generate(settings) // Default epoch
+	node := NewNode(1)
+	worker := node.NewWorker()
+	sf1, err := worker.GenerateSpaceflake() // Default epoch
 	if err != nil {
 		t.Error(err)
+		return
 	}
-	// When using random there is a chance that the sequence will be twice the same due to Go's speed, hence using a worker is better. We wait a millisecond to make sure it's different.
-	time.Sleep(1 * time.Millisecond)
-	settings.BaseEpoch = 1640995200000 // Saturday, January 1, 2022 12:00:00 AM GMT
-	sf2, err := Generate(settings)
+	worker.BaseEpoch = 1640995200000 // Saturday, January 1, 2022 12:00:00 AM GMT
+	sf2, err := worker.GenerateSpaceflake()
 	if err != nil {
 		t.Error(err)
+		return
 	}
-	if (sf1.Time() == sf2.Time()-1) || (sf1.Time() == sf2.Time()-2) { // Need to do this because we waited between the generation of the two Spaceflakes
+	if sf1.Time() == sf2.Time() {
 		t.Log("Success! Generated same timestamp for different base epoch")
 		return
 	}
 
 	t.Error("Failed! Generated different timestamps for different base epoch")
+}
+
+func TestSpaceflakeGenerateUnique(t *testing.T) {
+	spaceflakes := map[uint64]*Spaceflake{}
+	settings := NewGeneratorSettings()
+
+	for i := 0; i < 1000; i++ {
+		sf, err := Generate(settings)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if spaceflakes[sf.ID()] != nil {
+			t.Errorf("Failed! Spaceflake ID %d already exists", sf.ID())
+			return
+		}
+		spaceflakes[sf.ID()] = sf
+		// When using random there is a chance that the sequence will be twice the same due to Go's speed, hence using a worker is better. We wait a millisecond to make sure it's different.
+		time.Sleep(1 * time.Millisecond)
+	}
+
+	t.Log("Success! All Spaceflakes are unique")
 }

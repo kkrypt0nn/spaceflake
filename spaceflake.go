@@ -129,6 +129,29 @@ func (n *Node) GetWorkers() []*Worker {
 	return n.workers
 }
 
+// BulkGenerateSpaceflakes will generate the amount of Spaceflakes specified and auto scale the worker IDs
+func (n *Node) BulkGenerateSpaceflakes(amount int) ([]*Spaceflake, error) {
+	node := NewNode(1)
+	worker := node.NewWorker()
+	spaceflakes := make([]*Spaceflake, amount)
+	for i := 1; i <= amount; i++ {
+		if i%((MAX12BITS*MAX5BITS)+1) == 0 {
+			time.Sleep(1 * time.Millisecond)
+			node.workers = make([]*Worker, 0)
+			worker = node.NewWorker()
+		} else if i%MAX12BITS == 0 && i%(MAX12BITS*MAX5BITS) != 0 {
+			newWorker := node.NewWorker()
+			worker = newWorker
+		}
+		spaceflake, err := generateSpaceflakeOnNodeAndWorker(worker, worker.Node)
+		if err != nil {
+			return nil, err
+		}
+		spaceflakes[i-1] = spaceflake
+	}
+	return spaceflakes, nil
+}
+
 // Worker is a worker in the Spaceflake Network that can generate Spaceflakes
 type Worker struct {
 	// BaseEpoch is the epoch that will be used for the first 41 bits when generating a Spaceflake
@@ -160,8 +183,8 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	if w.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
 		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
 	}
-	// We reset the increment to 0 if it's greater than 4095, which is the max sequence number
-	if w.increment > MAX12BITS {
+	// We reset the increment to 0 if it's greater or equals to 4095, which is the max sequence number
+	if w.increment >= MAX12BITS {
 		w.increment = 0
 	}
 
@@ -189,6 +212,127 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	spaceflake.id = id
 
 	return spaceflake, nil
+}
+
+// GenerateSpaceflakeAt generates a Spaceflake at a specific time
+func (w *Worker) GenerateSpaceflakeAt(at time.Time) (*Spaceflake, error) {
+	if w.Node == nil {
+		return nil, fmt.Errorf("node is not set")
+	}
+	if w.Node.ID > MAX5BITS {
+		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
+	}
+	if w.ID > MAX5BITS {
+		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BITS)
+	}
+	if w.Sequence > MAX12BITS {
+		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BITS)
+	}
+	if w.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
+	}
+	if w.BaseEpoch > uint64(at.UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to the time you want to generate the Spaceflake at")
+	}
+	// We reset the increment to 0 if it's greater than 4095, which is the max sequence number
+	if w.increment >= MAX12BITS {
+		w.increment = 0
+	}
+
+	spaceflake := new(Spaceflake)
+	spaceflake.mutex = new(sync.Mutex)
+	spaceflake.mutex.Lock()
+	w.increment++
+	defer spaceflake.mutex.Unlock()
+
+	microSeconds := float64(at.Nanosecond()) / 1000000000
+	microTime := float64(at.Unix()) + microSeconds
+
+	milliseconds := uint64(math.Floor(microTime * 1000))
+	milliseconds -= w.BaseEpoch
+
+	base := stringPadLeft(decimalBinary(milliseconds), 41, "0")
+	nodeID := stringPadLeft(decimalBinary(w.Node.ID), 5, "0")
+	workerID := stringPadLeft(decimalBinary(w.ID), 5, "0")
+	actualSequence := w.Sequence
+	if w.Sequence == 0 {
+		actualSequence = w.increment
+	}
+	sequence := stringPadLeft(decimalBinary(actualSequence), 12, "0")
+	id, _ := binaryDecimal("0" + base + nodeID + workerID + sequence)
+
+	spaceflake.baseEpoch = w.BaseEpoch
+	spaceflake.binaryID = "0" + base + nodeID + workerID + sequence
+	spaceflake.id = id
+
+	return spaceflake, nil
+}
+
+// BulkGenerateSpaceflakes will generate the amount of Spaceflakes specified and scale nothing, it will wait one millisecond if the sequence is over 4095
+func (w *Worker) BulkGenerateSpaceflakes(amount int) ([]*Spaceflake, error) {
+	worker := w
+	spaceflakes := make([]*Spaceflake, amount)
+	for i := 1; i <= amount; i++ {
+		if i%(MAX12BITS+1) == 0 {
+			time.Sleep(1 * time.Millisecond)
+		}
+		spaceflake, err := generateSpaceflakeOnNodeAndWorker(worker, worker.Node)
+		if err != nil {
+			return nil, err
+		}
+		spaceflakes[i-1] = spaceflake
+	}
+	return spaceflakes, nil
+}
+
+// BulkGeneratorSettings is a struct that contains the settings for the bulk Spaceflake generator
+type BulkGeneratorSettings struct {
+	// Amount is the amount of Spaceflakes to generate
+	Amount int
+	// BaseEpoch is the base epoch that the Spaceflake generator will use
+	BaseEpoch uint64
+}
+
+// NewBulkGeneratorSettings is used for the settings of the BulkGenerate function below
+func NewBulkGeneratorSettings(amount int) BulkGeneratorSettings {
+	return BulkGeneratorSettings{
+		Amount:    amount,
+		BaseEpoch: EPOCH,
+	}
+}
+
+// Bulkgenerate will generate the amount of Spaceflakes specified and auto scale the node and worker IDs
+func BulkGenerate(s BulkGeneratorSettings) ([]*Spaceflake, error) {
+	node := NewNode(1)
+	worker := node.NewWorker()
+	worker.BaseEpoch = s.BaseEpoch
+	spaceflakes := make([]*Spaceflake, s.Amount)
+	for i := 1; i <= s.Amount; i++ {
+		if i%(MAX12BITS*MAX5BITS*MAX5BITS) == 0 {
+			time.Sleep(1 * time.Millisecond)
+			newNode := NewNode(1)
+			newWorker := newNode.NewWorker()
+			newWorker.BaseEpoch = s.BaseEpoch
+			node = newNode
+			worker = newWorker
+		} else if len(node.workers)%MAX5BITS == 0 && i%(MAX5BITS*MAX12BITS) == 0 {
+			newNode := NewNode(node.ID + 1)
+			newWorker := newNode.NewWorker()
+			newWorker.BaseEpoch = s.BaseEpoch
+			node = newNode
+			worker = newWorker
+		} else if i%MAX12BITS == 0 {
+			newWorker := worker.Node.NewWorker()
+			newWorker.BaseEpoch = s.BaseEpoch
+			worker = newWorker
+		}
+		spaceflake, err := generateSpaceflakeOnNodeAndWorker(worker, worker.Node)
+		if err != nil {
+			return nil, err
+		}
+		spaceflakes[i-1] = spaceflake
+	}
+	return spaceflakes, nil
 }
 
 // GeneratorSettings is a struct that contains the settings for the Spaceflake generator
@@ -251,6 +395,51 @@ func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	return spaceflake, nil
 }
 
+// GenerateAt generates a Spaceflake at a specific time
+func GenerateAt(s GeneratorSettings, at time.Time) (*Spaceflake, error) {
+	if s.NodeID > MAX5BITS {
+		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
+	}
+	if s.WorkerID > MAX5BITS {
+		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BITS)
+	}
+	if s.Sequence > MAX12BITS {
+		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BITS)
+	}
+	if s.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
+	}
+	if s.BaseEpoch > uint64(at.UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to the time you want to generate the Spaceflake at")
+	}
+
+	spaceflake := new(Spaceflake)
+	spaceflake.mutex = new(sync.Mutex)
+	spaceflake.mutex.Lock()
+	defer spaceflake.mutex.Unlock()
+
+	microSeconds := float64(at.Nanosecond()) / 1000000000
+	microTime := float64(at.Unix()) + microSeconds
+
+	milliseconds := uint64(math.Floor(microTime * 1000))
+	milliseconds -= s.BaseEpoch
+
+	base := stringPadLeft(decimalBinary(milliseconds), 41, "0")
+	nodeID := stringPadLeft(decimalBinary(s.NodeID), 5, "0")
+	workerID := stringPadLeft(decimalBinary(s.WorkerID), 5, "0")
+	if s.Sequence == 0 {
+		s.Sequence = uint64(random(0, MAX12BITS))
+	}
+	sequence := stringPadLeft(decimalBinary(s.Sequence), 12, "0")
+	id, _ := binaryDecimal("0" + base + nodeID + workerID + sequence)
+
+	spaceflake.baseEpoch = s.BaseEpoch
+	spaceflake.binaryID = "0" + base + nodeID + workerID + sequence
+	spaceflake.id = id
+
+	return spaceflake, nil
+}
+
 // ParseTime returns the time in milliseconds since the base epoch from the Spaceflake ID
 func ParseTime(spaceflakeID, baseEpoch uint64) uint64 {
 	return (spaceflakeID >> 22) + baseEpoch
@@ -294,6 +483,54 @@ func DecomposeBinary(spaceflakeID, baseEpoch uint64) map[string]string {
 }
 
 // --- Helper Functions ---
+
+// generateSpaceflakeOnNodeAndWorker generates a Spaceflake on a specific node and worker
+func generateSpaceflakeOnNodeAndWorker(w *Worker, n *Node) (*Spaceflake, error) {
+	if w.Node == nil {
+		return nil, fmt.Errorf("node is not set")
+	}
+	if w.Node.ID > MAX5BITS {
+		return nil, fmt.Errorf("node ID must be less than or equals to %d", MAX5BITS)
+	}
+	if w.ID > MAX5BITS {
+		return nil, fmt.Errorf("worker ID must be less than or equals to %d", MAX5BITS)
+	}
+	if w.Sequence > MAX12BITS {
+		return nil, fmt.Errorf("sequence must be less than or equals to %d", MAX12BITS)
+	}
+	if w.BaseEpoch > uint64(time.Now().UnixNano()/int64(time.Millisecond)) {
+		return nil, fmt.Errorf("base epoch must be less than or equals to current epoch time")
+	}
+	// We reset the increment to 0 if it's greater than 4095, which is the max sequence number
+	if w.increment >= MAX12BITS {
+		w.increment = 0
+	}
+
+	spaceflake := new(Spaceflake)
+	spaceflake.mutex = new(sync.Mutex)
+	spaceflake.mutex.Lock()
+	w.increment++
+	defer spaceflake.mutex.Unlock()
+
+	milliseconds := uint64(math.Floor(microTime() * 1000))
+	milliseconds -= w.BaseEpoch
+
+	base := stringPadLeft(decimalBinary(milliseconds), 41, "0")
+	nodeID := stringPadLeft(decimalBinary(w.Node.ID), 5, "0")
+	workerID := stringPadLeft(decimalBinary(w.ID), 5, "0")
+	actualSequence := w.Sequence
+	if w.Sequence == 0 {
+		actualSequence = w.increment
+	}
+	sequence := stringPadLeft(decimalBinary(actualSequence), 12, "0")
+	id, _ := binaryDecimal("0" + base + nodeID + workerID + sequence)
+
+	spaceflake.baseEpoch = w.BaseEpoch
+	spaceflake.binaryID = "0" + base + nodeID + workerID + sequence
+	spaceflake.id = id
+
+	return spaceflake, nil
+}
 
 // microTime returns the current time in microseconds
 func microTime() float64 {
