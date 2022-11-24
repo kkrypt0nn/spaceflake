@@ -25,7 +25,6 @@ type Spaceflake struct {
 	baseEpoch uint64
 	binaryID  string
 	id        uint64
-	mutex     *sync.Mutex
 }
 
 // Time returns the time in milliseconds since the base epoch from the Spaceflake
@@ -109,6 +108,7 @@ func (n *Node) NewWorker() *Worker {
 		Node:      n,
 		Sequence:  0,
 		increment: 0,
+		mutex:     &sync.Mutex{},
 	}
 	n.workers = append(n.workers, &w)
 	return &w
@@ -164,6 +164,7 @@ type Worker struct {
 	ID uint64
 
 	increment uint64
+	mutex     *sync.Mutex
 }
 
 // GenerateSpaceflake generates a Spaceflake
@@ -189,10 +190,9 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	}
 
 	spaceflake := new(Spaceflake)
-	spaceflake.mutex = new(sync.Mutex)
-	spaceflake.mutex.Lock()
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	w.increment++
-	defer spaceflake.mutex.Unlock()
 
 	milliseconds := uint64(math.Floor(microTime() * 1000))
 	milliseconds -= w.BaseEpoch
@@ -240,10 +240,9 @@ func (w *Worker) GenerateSpaceflakeAt(at time.Time) (*Spaceflake, error) {
 	}
 
 	spaceflake := new(Spaceflake)
-	spaceflake.mutex = new(sync.Mutex)
-	spaceflake.mutex.Lock()
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	w.increment++
-	defer spaceflake.mutex.Unlock()
 
 	microSeconds := float64(at.Nanosecond()) / 1000000000
 	microTime := float64(at.Unix()) + microSeconds
@@ -372,9 +371,6 @@ func Generate(s GeneratorSettings) (*Spaceflake, error) {
 	}
 
 	spaceflake := new(Spaceflake)
-	spaceflake.mutex = new(sync.Mutex)
-	spaceflake.mutex.Lock()
-	defer spaceflake.mutex.Unlock()
 
 	milliseconds := uint64(math.Floor(microTime() * 1000))
 	milliseconds -= s.BaseEpoch
@@ -414,9 +410,6 @@ func GenerateAt(s GeneratorSettings, at time.Time) (*Spaceflake, error) {
 	}
 
 	spaceflake := new(Spaceflake)
-	spaceflake.mutex = new(sync.Mutex)
-	spaceflake.mutex.Lock()
-	defer spaceflake.mutex.Unlock()
 
 	microSeconds := float64(at.Nanosecond()) / 1000000000
 	microTime := float64(at.Unix()) + microSeconds
@@ -507,10 +500,9 @@ func generateSpaceflakeOnNodeAndWorker(w *Worker, n *Node) (*Spaceflake, error) 
 	}
 
 	spaceflake := new(Spaceflake)
-	spaceflake.mutex = new(sync.Mutex)
-	spaceflake.mutex.Lock()
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	w.increment++
-	defer spaceflake.mutex.Unlock()
 
 	milliseconds := uint64(math.Floor(microTime() * 1000))
 	milliseconds -= w.BaseEpoch
