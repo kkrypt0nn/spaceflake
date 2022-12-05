@@ -5,7 +5,7 @@
 A distributed generator to create unique IDs with ease; inspired by [Twitter's Snowflake](https://github.com/twitter-archive/snowflake/tree/snowflake-2010). Blog post about this project can be found [here](https://krypton.ninja/2022/11/08/Generating-unique-IDs-with-the-Snowflake-algorithm/).
 
 ## What is a Snowflake?
-Apart from being a crystal of snow, a snowflake is a form of unique identifier which is being used in distributed computing. It has specific parts and is 64 bits long in binary. I simply named my type of snowflake, a **Spaceflake**, as it does not compose of the same parts of a Twitter Snowflake and is being used for [Spacehut](https://github.com/spacehutapp) and other projects of myself.
+Apart from being a crystal of snow, a snowflake is a form of unique identifier which is being used in distributed computing. It has specific parts and is 64 bits long in binary. I simply named my type of snowflake, a **Spaceflake**, as it does not compose of the same parts of a Twitter Snowflake and is being used for [Project Absence](https://github.com/ProjectAbsence) and other projects of myself.
 
 ### Structure
 A Spaceflake is structured like the following:
