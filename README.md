@@ -119,4 +119,4 @@ settings.Sequence = ... // Replace with your number generator
 
 ## License
 
-This library was made with 💜 by Krypton and is under the [GPL v3](LICENSE.md) license.
+This library was made with 💜 by Krypton and is under the [MIT](LICENSE.md) license.
