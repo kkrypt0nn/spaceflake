@@ -1,6 +1,6 @@
 # ❄ Spaceflake ❄
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/kkrypt0nn/spaceflake.svg)](https://pkg.go.dev/github.com/kkrypt0nn/spaceflake) ![Repository License](https://img.shields.io/github/license/kkrypt0nn/spaceflake?style=flat-square) ![Code Size](https://img.shields.io/github/languages/code-size/kkrypt0nn/spaceflake?style=flat-square) ![Last Commit](https://img.shields.io/github/last-commit/kkrypt0nn/spaceflake?style=flat-square)
+[![Discord Server Badge](https://img.shields.io/discord/1358456011316396295?logo=discord)](https://discord.gg/xj6y5ZaTMr) [![Go Reference](https://pkg.go.dev/badge/github.com/kkrypt0nn/spaceflake.svg)](https://pkg.go.dev/github.com/kkrypt0nn/spaceflake) ![Repository License](https://img.shields.io/github/license/kkrypt0nn/spaceflake?style=flat-square) ![Code Size](https://img.shields.io/github/languages/code-size/kkrypt0nn/spaceflake?style=flat-square) ![Last Commit](https://img.shields.io/github/last-commit/kkrypt0nn/spaceflake?style=flat-square)
 
 A distributed generator to create unique IDs with ease; inspired by [Twitter's Snowflake](https://github.com/twitter-archive/snowflake/tree/snowflake-2010). Blog post about this project can be found [here](https://krypton.ninja/2022/11/08/Generating-unique-IDs-with-the-Snowflake-algorithm/).
 
