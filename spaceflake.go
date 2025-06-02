@@ -200,10 +200,9 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	milliseconds -= w.BaseEpoch
 
 	if milliseconds < w.lastTimestamp {
-		for milliseconds < w.lastTimestamp {
-			time.Sleep(time.Millisecond)
-			milliseconds = uint64(math.Floor(microTime()*1000)) - w.BaseEpoch
-		}
+		delta := w.lastTimestamp - milliseconds
+		time.Sleep(time.Duration(delta + 1) * time.Millisecond)
+		milliseconds = uint64(math.Floor(microTime() * 1000)) - w.BaseEpoch)
 	}
 
 	w.lastTimestamp = milliseconds
