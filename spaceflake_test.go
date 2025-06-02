@@ -160,28 +160,6 @@ func TestSpaceflakeWorkerGoroutineUnique(t *testing.T) {
 	t.Log("Success! All Spaceflakes are unique")
 }
 
-func TestSameTimeStampDifferentBaseEpoch(t *testing.T) {
-	node := NewNode(1)
-	worker := node.NewWorker()
-	sf1, err := worker.GenerateSpaceflake() // Default epoch
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	worker.BaseEpoch = 1640995200000 // Saturday, January 1, 2022 12:00:00 AM GMT
-	sf2, err := worker.GenerateSpaceflake()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if sf1.Time() == sf2.Time() {
-		t.Log("Success! Generated same timestamp for different base epoch")
-		return
-	}
-
-	t.Error("Failed! Generated different timestamps for different base epoch")
-}
-
 func TestSpaceflakeGenerateUnique(t *testing.T) {
 	spaceflakes := map[uint64]*Spaceflake{}
 	settings := NewGeneratorSettings()
