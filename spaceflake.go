@@ -17,7 +17,8 @@ const (
 	// MAX12BITS is the maximum value for a 12 bits number
 	MAX12BITS = 4095
 	// MAX41BITS is the maximum value for a 41 bits number
-	MAX41BITS = 2199023255551
+	MAX41BITS                = 2199023255551
+	CLOCK_DRIFT_TOLERANCE_MS = 10
 )
 
 // Spaceflake represents a Spaceflake
@@ -199,10 +200,12 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 	milliseconds := uint64(math.Floor(microTime() * 1000))
 	milliseconds -= w.BaseEpoch
 
-	if milliseconds < w.lastTimestamp {
-		delta := w.lastTimestamp - milliseconds
-		time.Sleep(time.Duration(delta + 1) * time.Millisecond)
-		milliseconds = uint64(math.Floor(microTime() * 1000)) - w.BaseEpoch)
+	if delta := w.lastTimestamp - milliseconds; milliseconds < w.lastTimestamp {
+		if delta >= CLOCK_DRIFT_TOLERANCE_MS {
+			return nil, fmt.Errorf("clock moved backwards by %dms", delta)
+		}
+		time.Sleep(time.Duration(delta+1) * time.Millisecond)
+		milliseconds = uint64(math.Floor(microTime()*100)) - w.BaseEpoch
 	}
 
 	w.lastTimestamp = milliseconds
