@@ -162,13 +162,15 @@ type Worker struct {
 	Sequence uint64
 	// ID is the worker ID that the Spaceflake generator will use for the next 5 bits
 	ID uint64
-
-	increment uint64
-	mutex     *sync.Mutex
+	// used to prevent clockdrift
+	lastTimestamp uint64
+	increment     uint64
+	mutex         *sync.Mutex
 }
 
 // GenerateSpaceflake generates a Spaceflake
 func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
+
 	if w.Node == nil {
 		return nil, fmt.Errorf("node is not set")
 	}
@@ -196,6 +198,15 @@ func (w *Worker) GenerateSpaceflake() (*Spaceflake, error) {
 
 	milliseconds := uint64(math.Floor(microTime() * 1000))
 	milliseconds -= w.BaseEpoch
+
+	if milliseconds < w.lastTimestamp {
+		for milliseconds < w.lastTimestamp {
+			time.Sleep(time.Millisecond)
+			milliseconds = uint64(math.Floor(microTime()*1000)) - w.BaseEpoch
+		}
+	}
+
+	w.lastTimestamp = milliseconds
 
 	base := stringPadLeft(decimalBinary(milliseconds), 41, "0")
 	nodeID := stringPadLeft(decimalBinary(w.Node.ID), 5, "0")
@@ -249,6 +260,10 @@ func (w *Worker) GenerateSpaceflakeAt(at time.Time) (*Spaceflake, error) {
 
 	milliseconds := uint64(math.Floor(microTime * 1000))
 	milliseconds -= w.BaseEpoch
+
+	if milliseconds < w.lastTimestamp {
+		return nil, fmt.Errorf("cannot generate Spaceflake: Detected clock drift. The time you want to generate the Spaceflake at is before the last generated Spaceflake time")
+	}
 
 	base := stringPadLeft(decimalBinary(milliseconds), 41, "0")
 	nodeID := stringPadLeft(decimalBinary(w.Node.ID), 5, "0")
