@@ -1,0 +1,14 @@
+name: Spaceflake CI (Lint & Test)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: kkrypt0nn/actions/.github/workflows/go_ci.yaml@764909eeff7c880e26da91d6f31a208fdb45d57b # v0.2.0
+    with:
+      go-version: 1.27.3
